@@ -1212,6 +1212,15 @@ void Aquamarine::CDRMBackend::recheckOutputs() {
             conn->disconnect();
         }
 
+        // a driver may report a sink before it can read its modes, e.g. a monitor behind a USB4 dock that is still
+        // waking up, and report the modes on a later hotplug while the connector stays connected. reconnect the
+        // output so it picks them up, it would otherwise be left without a mode to set.
+        if (conn->status == DRM_MODE_CONNECTED && conn->output && conn->output->modes.empty() && conn->maxMode.x > 0) {
+            backend->log(AQ_LOG_DEBUG, std::format("drm: Connector {} gained modes, reconnecting", conn->szName));
+            conn->disconnect();
+            conn->status = DRM_MODE_CONNECTED;
+        }
+
         // also disconnect redundant tiled connectors that may have been previously connected
         if (conn->tilingRedundant && conn->output) {
             backend->log(AQ_LOG_DEBUG, std::format("drm: Disconnecting tiling-redundant connector {}", conn->szName));
