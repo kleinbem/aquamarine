@@ -1286,6 +1286,13 @@ void Aquamarine::CDRMBackend::scanConnectors() {
         } else {
             backend->log(AQ_LOG_DEBUG, std::format("drm: Connector id {} already initialized", connectorID));
             conn = *it;
+
+            // drivers may narrow or widen these on hotplug, e.g. when a Type-C port is rerouted to another pipeline
+            const auto possibleCrtcs = drmModeConnectorGetPossibleCrtcs(gpu->fd, drmConn);
+            if (possibleCrtcs && possibleCrtcs != conn->possibleCrtcs) {
+                backend->log(AQ_LOG_DEBUG, std::format("drm: Connector {} possible CRTCs changed {:#x} -> {:#x}", conn->szName, conn->possibleCrtcs, possibleCrtcs));
+                conn->possibleCrtcs = possibleCrtcs;
+            }
         }
 
         conn->status = drmConn->connection;
